@@ -3,42 +3,63 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Calculador de Rutas Múltiples - España</title>
+    <title>Calculador Logístico España</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #f8f9fa; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
-        .container { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); width: 100%; max-width: 800px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-        .inputs { display: flex; flex-direction: column; }
-        h2 { margin-top: 0; font-size: 1.2rem; color: #333; grid-column: 1 / span 2; text-align: center; }
+        :root { --primary: #d32f2f; --secondary: #1976d2; }
+        body { font-family: 'Segoe UI', sans-serif; background: #f4f4f9; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        .container { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); width: 100%; max-width: 900px; display: grid; grid-template-columns: 1fr 1.2fr; gap: 20px; }
+        h2 { grid-column: 1 / span 2; text-align: center; margin: 0 0 10px 0; color: #333; }
+        
+        /* Autocomplete styles */
+        .autocomplete-container { position: relative; }
+        #sugerencias { position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #ccc; z-index: 2000; max-height: 200px; overflow-y: auto; border-radius: 0 0 8px 8px; display: none; }
+        .sugerencia-item { padding: 10px; cursor: pointer; border-bottom: 1px solid #eee; font-size: 0.9rem; }
+        .sugerencia-item:hover { background: #f0f0f0; }
+
         label { font-weight: bold; margin-bottom: 5px; display: block; font-size: 0.9rem; }
-        input, textarea { width: 100%; padding: 10px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-family: inherit; }
-        textarea { height: 120px; resize: vertical; }
-        button { padding: 15px; background: #007bff; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 1rem; }
-        button:hover { background: #0056b3; }
+        input, textarea, select { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; font-family: inherit; }
         
-        .results-container { overflow-y: auto; max-height: 400px; }
+        .opciones-ruta { display: flex; gap: 15px; margin-bottom: 15px; background: #f9f9f9; padding: 10px; border-radius: 8px; }
+        .opciones-ruta label { display: flex; align-items: center; gap: 5px; cursor: pointer; font-weight: normal; }
+
+        button { padding: 15px; background: var(--secondary); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.3s; }
+        button:hover { background: #115293; }
+        
+        .results-container { overflow-y: auto; max-height: 500px; border: 1px solid #eee; border-radius: 8px; padding: 10px; }
         table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
-        th, td { text-align: left; padding: 10px; border-bottom: 1px solid #eee; }
-        th { background: #f4f4f4; }
+        th, td { text-align: left; padding: 12px; border-bottom: 1px solid #eee; }
+        th { background: #f4f4f4; position: sticky; top: 0; }
         
-        #map { width: 100%; max-width: 800px; height: 400px; margin-top: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-        .loading { color: #007bff; font-weight: bold; font-size: 0.9rem; margin-top: 10px; }
+        #map { width: 100%; max-width: 900px; height: 450px; margin-top: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .loading { color: var(--secondary); font-weight: bold; margin-top: 10px; font-size: 0.9rem; }
+        
+        /* Icono rojo para los destinos */
+        .red-icon { filter: hue-rotate(150deg) brightness(0.8); }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>Cálculo de Distancias por Ruta (España)</h2>
+    <h2>Cálculo de Rutas por Dirección</h2>
     
     <div class="inputs">
-        <label>Dirección u Origen (CP o Calle, Ciudad):</label>
-        <input type="text" id="origen" placeholder="Ej: Calle Mayor 1, Madrid o 28013" value="Madrid">
+        <label>Dirección de Origen:</label>
+        <div class="autocomplete-container">
+            <input type="text" id="origen" placeholder="Escribe calle, número y ciudad..." autocomplete="off">
+            <div id="sugerencias"></div>
+        </div>
 
-        <label>Direcciones o CPs de Destino (uno por línea):</label>
-        <textarea id="destinos" placeholder="28001&#10;Calle Pelayo 5, Barcelona&#10;Sevilla&#10;Valencia"></textarea>
+        <div class="opciones-ruta">
+            <label><input type="radio" name="tipoRuta" value="1" checked> Sólo ida</label>
+            <label><input type="radio" name="tipoRuta" value="2"> Ida y vuelta</label>
+        </div>
+
+        <label>Destinos (uno por línea):</label>
+        <textarea id="destinos" placeholder="28001&#10;Calle Pelayo 5, Barcelona&#10;Sevilla"></textarea>
         
-        <button onclick="procesarTodo()">Calcular Todas las Rutas</button>
+        <button onclick="procesarTodo()">Calcular Rutas</button>
         <div id="status" class="loading"></div>
     </div>
 
@@ -51,9 +72,7 @@
                     <th>Tiempo</th>
                 </tr>
             </thead>
-            <tbody id="tabla-resultados">
-                <!-- Se llenará dinámicamente -->
-            </tbody>
+            <tbody id="tabla-resultados"></tbody>
         </table>
     </div>
 </div>
@@ -63,98 +82,127 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script>
+    // --- CONFIGURACIÓN DEL MAPA ---
     const map = L.map('map').setView([40.4167, -3.7037], 5);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap'
     }).addTo(map);
 
     let capasRutas = L.featureGroup().addTo(map);
+    let timeoutBusqueda;
 
-    // Función para convertir Texto (dirección o CP) a Coordenadas
+    // --- AUTOCOMPLETADO ---
+    const inputOrigen = document.getElementById('origen');
+    const sugerenciasDiv = document.getElementById('sugerencias');
+
+    inputOrigen.addEventListener('input', () => {
+        clearTimeout(timeoutBusqueda);
+        const query = inputOrigen.value;
+        if (query.length < 4) { sugerenciasDiv.style.display = 'none'; return; }
+
+        timeoutBusqueda = setTimeout(async () => {
+            const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query + ", España")}&limit=5`;
+            try {
+                const response = await fetch(url, { headers: { 'User-Agent': 'CalculadorDist' } });
+                const data = await response.json();
+                
+                sugerenciasDiv.innerHTML = '';
+                if (data.length > 0) {
+                    sugerenciasDiv.style.display = 'block';
+                    data.forEach(item => {
+                        const div = document.createElement('div');
+                        div.className = 'sugerencia-item';
+                        div.innerText = item.display_name;
+                        div.onclick = () => {
+                            inputOrigen.value = item.display_name;
+                            inputOrigen.dataset.lat = item.lat;
+                            inputOrigen.dataset.lon = item.lon;
+                            sugerenciasDiv.style.display = 'none';
+                        };
+                        sugerenciasDiv.appendChild(div);
+                    });
+                }
+            } catch (e) {}
+        }, 500);
+    });
+
+    // --- LÓGICA DE CÁLCULO ---
+
     async function geocodificar(query) {
-        // Añadimos ", España" para forzar que busque aquí
         const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query + ", España")}&limit=1`;
-        const response = await fetch(url, { headers: { 'User-Agent': 'MiCalculadorDistancias/1.0' } });
+        const response = await fetch(url, { headers: { 'User-Agent': 'CalculadorDist' } });
         const data = await response.json();
         if (data.length === 0) throw new Error("No encontrado");
-        return {
-            lat: parseFloat(data[0].lat),
-            lon: parseFloat(data[0].lon),
-            display_name: data[0].display_name
-        };
+        return { lat: data[0].lat, lon: data[0].lon };
     }
 
-    // Función para calcular ruta entre dos puntos
     async function obtenerRuta(p1, p2) {
         const url = `https://router.project-osrm.org/route/v1/driving/${p1.lon},${p1.lat};${p2.lon},${p2.lat}?overview=full&geometries=geojson`;
         const response = await fetch(url);
         const data = await response.json();
-        if (!data.routes || data.routes.length === 0) throw new Error("Sin ruta");
         return data.routes[0];
     }
 
     async function procesarTodo() {
-        const origenTexto = document.getElementById('origen').value.trim();
+        const origenTexto = inputOrigen.value;
         const destinosTexto = document.getElementById('destinos').value.trim();
+        const multiplicador = parseInt(document.querySelector('input[name="tipoRuta"]:checked').value);
         const tabla = document.getElementById('tabla-resultados');
         const status = document.getElementById('status');
 
-        if (!origenTexto || !destinosTexto) {
-            alert("Por favor rellena origen y destinos");
-            return;
-        }
+        if (!origenTexto || !destinosTexto) { alert("Completa los campos"); return; }
 
-        const listaDestinos = destinosTexto.split('\n').filter(linea => linea.trim() !== "");
+        const listaDestinos = destinosTexto.split('\n').filter(l => l.trim() !== "");
         tabla.innerHTML = "";
         capasRutas.clearLayers();
-        status.innerText = "Iniciando proceso...";
-
+        
         try {
-            // 1. Geocodificar Origen
-            status.innerText = "Buscando origen...";
-            const coordOrigen = await geocodificar(origenTexto);
-            L.marker([coordOrigen.lat, coordOrigen.lon]).addTo(capasRutas).bindPopup("ORIGEN: " + origenTexto);
-
-            // 2. Procesar cada destino en un bucle
-            for (let i = 0; i < listaDestinos.length; i++) {
-                const textoDestino = listaDestinos[i].trim();
-                status.innerText = `Procesando destino ${i + 1} de ${listaDestinos.length}: ${textoDestino}`;
-                
-                try {
-                    // Geocodificar destino
-                    const coordDestino = await geocodificar(textoDestino);
-                    
-                    // Esperar un poco para no saturar la API gratuita (Nomimatim pide 1 seg entre peticiones)
-                    await new Promise(r => setTimeout(r, 1000));
-
-                    // Calcular ruta
-                    const ruta = await obtenerRuta(coordOrigen, coordDestino);
-                    const kms = (ruta.distance / 1000).toFixed(1);
-                    const mins = Math.round(ruta.duration / 60);
-
-                    // Añadir a la tabla
-                    const fila = `<tr>
-                        <td>${textoDestino}</td>
-                        <td><strong>${kms} km</strong></td>
-                        <td>${mins} min</td>
-                    </tr>`;
-                    tabla.innerHTML += fila;
-
-                    // Dibujar en el mapa
-                    const geojson = L.geoJSON(ruta.geometry, {
-                        style: { color: i === 0 ? 'blue' : 'gray', weight: 3, opacity: 0.6 }
-                    }).addTo(capasRutas);
-
-                } catch (err) {
-                    tabla.innerHTML += `<tr><td>${textoDestino}</td><td colspan="2" style="color:red">No encontrado o sin ruta</td></tr>`;
-                }
+            status.innerText = "Obteniendo origen...";
+            // Si no seleccionó del autocompletado, geocodificamos manualmente
+            let coordOrigen;
+            if (inputOrigen.dataset.lat) {
+                coordOrigen = { lat: inputOrigen.dataset.lat, lon: inputOrigen.dataset.lon };
+            } else {
+                coordOrigen = await geocodificar(origenTexto);
             }
 
-            status.innerText = "¡Proceso finalizado!";
-            map.fitBounds(capasRutas.getBounds(), { padding: [20, 20] });
+            L.marker([coordOrigen.lat, coordOrigen.lon]).addTo(capasRutas).bindPopup("ORIGEN");
+
+            for (let i = 0; i < listaDestinos.length; i++) {
+                const dTexto = listaDestinos[i].trim();
+                status.innerText = `Calculando ${i+1} de ${listaDestinos.length}...`;
+                
+                try {
+                    await new Promise(r => setTimeout(r, 1000)); // Respetar límites API
+                    const coordDestino = await geocodificar(dTexto);
+                    const ruta = await obtenerRuta(coordOrigen, coordDestino);
+                    
+                    const kms = ((ruta.distance / 1000) * multiplicador).toFixed(2);
+                    const minsTotal = (ruta.duration / 60) * multiplicador;
+                    const horas = Math.floor(minsTotal / 60);
+                    const mins = Math.round(minsTotal % 60);
+                    const tiempoStr = horas > 0 ? `${horas}h ${mins}min` : `${mins}min`;
+
+                    // Añadir fila a tabla
+                    tabla.innerHTML += `<tr><td>${dTexto}</td><td><strong>${kms} km</strong></td><td>${tiempoStr}</td></tr>`;
+
+                    // Añadir marcador ROJO (POI)
+                    const redMarker = L.marker([coordDestino.lat, coordDestino.lon]).addTo(capasRutas);
+                    redMarker._icon.classList.add("red-icon");
+                    redMarker.bindPopup(`DESTINO: ${dTexto}<br>${kms} km`);
+
+                    // Dibujar línea
+                    L.geoJSON(ruta.geometry, { style: { color: '#333', weight: 3, opacity: 0.5 } }).addTo(capasRutas);
+
+                } catch (e) {
+                    tabla.innerHTML += `<tr><td>${dTexto}</td><td colspan="2" style="color:red">No encontrado</td></tr>`;
+                }
+            }
+            status.innerText = "Finalizado.";
+            map.fitBounds(capasRutas.getBounds(), { padding: [50, 50] });
 
         } catch (error) {
-            status.innerText = "Error en el origen: " + error.message;
+            status.innerText = "Error: " + error.message;
         }
     }
 </script>
