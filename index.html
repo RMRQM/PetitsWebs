@@ -1,279 +1,319 @@
 <!DOCTYPE html>
+<html class="light" lang="es">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Fluid Navigator - Calculador de Rutas España</title>
+    
+    <!-- Estilos -->
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
-<html class="light" lang="en"><head>
-<meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>Fluid Navigator - Route Calculator</title>
-<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
-<script id="tailwind-config">
+    <script id="tailwind-config">
         tailwind.config = {
-            darkMode: "class",
             theme: {
                 extend: {
-                    "colors": {
-                        "on-tertiary-container": "#fcfeff",
-                        "on-error-container": "#93000a",
-                        "surface-tint": "#005faf",
-                        "outline": "#717783",
-                        "on-secondary-container": "#00337c",
-                        "on-primary-fixed-variant": "#004786",
-                        "tertiary-container": "#008195",
-                        "on-tertiary-fixed": "#001f26",
-                        "surface-variant": "#e2e2e7",
-                        "on-surface": "#1a1c1f",
-                        "secondary-fixed": "#d9e2ff",
-                        "secondary-container": "#759efd",
-                        "primary-container": "#1976d2",
-                        "on-tertiary": "#ffffff",
-                        "tertiary-fixed": "#a8edff",
-                        "on-secondary-fixed": "#001945",
-                        "error-container": "#ffdad6",
-                        "on-secondary": "#ffffff",
-                        "on-background": "#1a1c1f",
+                    colors: {
                         "primary": "#005dac",
-                        "background": "#f9f9fe",
-                        "surface-container": "#ededf2",
-                        "secondary-fixed-dim": "#b0c6ff",
-                        "surface": "#f9f9fe",
-                        "on-primary-container": "#fffdff",
-                        "surface-container-high": "#e8e8ed",
-                        "outline-variant": "#c1c6d4",
-                        "inverse-primary": "#a5c8ff",
-                        "tertiary": "#006677",
-                        "error": "#ba1a1a",
                         "secondary": "#2b5bb5",
-                        "on-primary": "#ffffff",
-                        "primary-fixed-dim": "#a5c8ff",
-                        "surface-container-low": "#f3f3f8",
-                        "surface-bright": "#f9f9fe",
-                        "on-error": "#ffffff",
-                        "surface-container-lowest": "#ffffff",
-                        "on-surface-variant": "#414752",
-                        "on-secondary-fixed-variant": "#00429c",
-                        "on-tertiary-fixed-variant": "#004e5b",
-                        "inverse-on-surface": "#f0f0f5",
-                        "tertiary-fixed-dim": "#49d7f4",
-                        "primary-fixed": "#d4e3ff",
-                        "inverse-surface": "#2e3034",
-                        "surface-container-highest": "#e2e2e7",
-                        "on-primary-fixed": "#001c3a",
-                        "surface-dim": "#d9dade"
-                    },
-                    "borderRadius": {
-                        "DEFAULT": "0.25rem",
-                        "lg": "0.5rem",
-                        "xl": "0.75rem",
-                        "full": "9999px"
-                    },
-                    "fontFamily": {
-                        "headline": ["Inter"],
-                        "body": ["Inter"],
-                        "label": ["Inter"]
+                        "surface": "#f9f9fe",
+                        "background": "#f9f9fe",
                     }
-                },
-            },
+                }
+            }
         }
     </script>
-<style>
+    <style>
         body { font-family: 'Inter', sans-serif; }
-        .material-symbols-outlined {
-            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
-        }
+        #map { height: 100%; width: 100%; z-index: 1; }
+        .red-icon { filter: hue-rotate(150deg) brightness(0.8); }
+        .results-scroll { max-height: 300px; overflow-y: auto; }
+        #sugerencias { z-index: 2000; }
     </style>
 </head>
+
 <body class="bg-background text-on-surface">
-<!-- TopAppBar Shell -->
-<header class="flex justify-between items-center w-full px-6 py-4 fixed top-0 z-50 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl no-border shadow-[0_12px_32px_-4px_rgba(0,28,58,0.08)]">
-<div class="flex items-center gap-8">
-<span class="text-2xl font-black text-blue-900 dark:text-blue-100 tracking-tight">Fluid Navigator</span>
-<nav class="hidden md:flex gap-6">
-<a class="font-inter tracking-tight font-medium text-blue-700 dark:text-blue-400 border-b-2 border-blue-700 dark:border-blue-400 py-1 transition-colors duration-300" href="#">Plan Trip</a>
-<a class="font-inter tracking-tight font-medium text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-300 transition-colors duration-300 py-1" href="#">Saved Routes</a>
-<a class="font-inter tracking-tight font-medium text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-300 transition-colors duration-300 py-1" href="#">Travel History</a>
-</nav>
-</div>
-<div class="flex items-center gap-4">
-<button class="p-2 text-slate-500 hover:text-blue-600 transition-colors"><span class="material-symbols-outlined" data-icon="notifications">notifications</span></button>
-<button class="p-2 text-slate-500 hover:text-blue-600 transition-colors"><span class="material-symbols-outlined" data-icon="account_circle">account_circle</span></button>
-</div>
+
+<!-- Header -->
+<header class="flex justify-between items-center w-full px-6 py-4 fixed top-0 z-50 bg-white/80 backdrop-blur-xl shadow-sm">
+    <div class="flex items-center gap-8">
+        <span class="text-2xl font-black text-blue-900 tracking-tight">Fluid Navigator</span>
+    </div>
+    <div class="flex items-center gap-4 text-slate-500 text-sm font-medium">
+        <span>Logística de Precisión • España</span>
+    </div>
 </header>
+
 <main class="flex min-h-screen pt-20">
-<!-- SideNavBar Shell -->
-<aside class="hidden md:flex flex-col h-[calc(100vh-80px)] w-64 fixed left-0 top-20 p-4 gap-2 bg-slate-50 dark:bg-slate-950">
-<div class="px-4 py-4 mb-4">
-<h2 class="text-lg font-black text-blue-900 dark:text-blue-100">Navigation</h2>
-<p class="text-xs text-slate-500 font-semibold uppercase tracking-widest">Precision Logistics</p>
-</div>
-<nav class="flex flex-col gap-1">
-<a class="flex items-center gap-3 px-4 py-3 bg-white dark:bg-slate-800 text-blue-700 dark:text-blue-400 rounded-lg shadow-sm font-bold transition-all duration-300" href="#">
-<span class="material-symbols-outlined" data-icon="directions_car">directions_car</span>
-<span class="font-inter text-sm">Plan Trip</span>
-</a>
-<a class="flex items-center gap-3 px-4 py-3 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-900 hover:pl-6 transition-all duration-300" href="#">
-<span class="material-symbols-outlined" data-icon="map">map</span>
-<span class="font-inter text-sm">Saved Routes</span>
-</a>
-<a class="flex items-center gap-3 px-4 py-3 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-900 hover:pl-6 transition-all duration-300" href="#">
-<span class="material-symbols-outlined" data-icon="history">history</span>
-<span class="font-inter text-sm">Travel History</span>
-</a>
-<a class="flex items-center gap-3 px-4 py-3 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-900 hover:pl-6 transition-all duration-300" href="#">
-<span class="material-symbols-outlined" data-icon="person">person</span>
-<span class="font-inter text-sm">Account</span>
-</a>
-</nav>
-<div class="mt-auto p-4">
-<button class="w-full py-3 bg-gradient-to-r from-primary to-primary-container text-white rounded-full font-bold shadow-lg hover:scale-105 active:scale-95 transition-transform flex items-center justify-center gap-2">
-<span class="material-symbols-outlined text-sm">add</span>
-<span>New Route</span>
-</button>
-</div>
-</aside>
-<!-- Main Content Area -->
-<div class="flex-1 ml-0 md:ml-64 flex flex-col md:flex-row h-screen overflow-hidden">
-<!-- Left Column: Form & Results -->
-<section class="w-full md:w-[480px] h-full overflow-y-auto p-6 flex flex-col gap-8 bg-surface">
-<!-- Route Planning Card -->
-<div class="bg-surface-container-lowest p-8 rounded-xl shadow-[0_12px_32px_-4px_rgba(0,28,58,0.08)]">
-<header class="mb-8">
-<h1 class="text-3xl font-extrabold text-on-surface tracking-tight mb-2">Route Planning</h1>
-<p class="text-on-surface-variant text-sm font-medium">Define your architectural journey across the grid.</p>
-</header>
-<form class="space-y-6 relative">
-<!-- Connecting Line -->
-<div class="absolute left-6 top-12 bottom-12 w-0.5 border-l-2 border-dashed border-outline-variant"></div>
-<div class="relative flex flex-col gap-2">
-<label class="text-primary font-bold text-xs uppercase tracking-widest px-1">Origin</label>
-<div class="flex items-center bg-surface-container-high rounded-xl p-4 focus-within:bg-surface-bright transition-colors group">
-<span class="material-symbols-outlined text-primary mr-3" data-icon="location_on">location_on</span>
-<input class="bg-transparent border-none focus:ring-0 w-full text-on-surface placeholder:text-on-surface-variant/50 font-medium" placeholder="Enter starting point" type="text"/>
-</div>
-</div>
-<div class="flex items-center justify-center -my-4 z-10">
-<button class="bg-surface-container-low p-2 rounded-full text-primary hover:bg-primary hover:text-white transition-all shadow-sm" type="button">
-<span class="material-symbols-outlined" data-icon="swap_vert">swap_vert</span>
-</button>
-</div>
-<div class="relative flex flex-col gap-2">
-<label class="text-primary font-bold text-xs uppercase tracking-widest px-1">Destination</label>
-<div class="flex items-center bg-surface-container-high rounded-xl p-4 focus-within:bg-surface-bright transition-colors group">
-<span class="material-symbols-outlined text-secondary mr-3" data-icon="flag">flag</span>
-<input class="bg-transparent border-none focus:ring-0 w-full text-on-surface placeholder:text-on-surface-variant/50 font-medium" placeholder="Enter destination" type="text"/>
-</div>
-</div>
-<button class="flex items-center gap-2 text-primary font-semibold text-sm py-2 hover:translate-x-1 transition-transform" type="button">
-<span class="material-symbols-outlined" data-icon="add_circle">add_circle</span>
-<span>Add Waypoints</span>
-</button>
-<button class="w-full py-4 mt-4 bg-gradient-to-br from-primary to-secondary text-white rounded-full font-bold text-lg shadow-xl hover:shadow-primary/20 active:scale-95 transition-all">
-                            Calculate Route
-                        </button>
-</form>
-</div>
-<!-- Results Card -->
-<div class="bg-surface-container-low p-6 rounded-xl space-y-6">
-<div class="flex justify-between items-center flex-wrap gap-2"><h3 class="font-bold text-on-surface-variant uppercase text-xs tracking-widest mr-auto">Optimized Results</h3>
-<div class="flex items-center gap-2">
-<button class="flex items-center gap-1.5 px-3 py-1 rounded-lg border border-primary/20 bg-primary/5 text-primary hover:bg-primary/10 transition-colors duration-200">
-<span class="material-symbols-outlined text-sm" data-icon="table_chart">table_chart</span>
-<span class="text-[10px] font-bold uppercase tracking-wider">Export CSV</span>
-</button>
-<span class="bg-tertiary-container text-on-tertiary-container px-3 py-1 rounded-sm text-[10px] font-black uppercase">Fastest</span>
-</div></div>
-<div class="flex gap-8 items-end">
-<div class="flex flex-col gap-1">
-<span class="text-on-surface-variant text-[10px] font-bold uppercase">Total Distance</span>
-<div class="flex items-baseline gap-1">
-<span class="text-4xl font-black text-primary tracking-tighter">482.4</span>
-<span class="text-lg font-bold text-on-surface-variant">km</span>
-</div>
-</div>
-<div class="flex flex-col gap-1">
-<span class="text-on-surface-variant text-[10px] font-bold uppercase">Est. Time</span>
-<div class="flex items-baseline gap-1">
-<span class="text-4xl font-black text-on-surface tracking-tighter">4:15</span>
-<span class="text-lg font-bold text-on-surface-variant">hrs</span>
-</div>
-</div>
-</div>
-<div class="space-y-4 pt-4">
-<div class="flex items-center gap-4 bg-surface-container-lowest p-4 rounded-xl">
-<div class="p-2 bg-primary-fixed-dim rounded-lg">
-<span class="material-symbols-outlined text-primary" data-icon="traffic">traffic</span>
-</div>
-<div class="flex-1">
-<p class="text-xs font-bold text-on-surface uppercase tracking-tight">Traffic conditions</p>
-<p class="text-sm text-on-surface-variant">Moderate delays on Route 66</p>
-</div>
-</div>
-<div class="flex items-center gap-4 bg-surface-container-lowest p-4 rounded-xl">
-<div class="p-2 bg-tertiary-fixed-dim rounded-lg">
-<span class="material-symbols-outlined text-tertiary" data-icon="local_gas_station">local_gas_station</span>
-</div>
-<div class="flex-1">
-<p class="text-xs font-bold text-on-surface uppercase tracking-tight">Fuel Estimation</p>
-<p class="text-sm text-on-surface-variant">Estimated 32L of premium</p>
-</div>
-</div>
-</div>
-</div>
-<div class="mt-auto pb-6 opacity-30 text-[10px] font-medium tracking-widest uppercase text-center">
-                    Powered by Fluid Navigator Core v4.2
+    <!-- Sidebar Izquierdo (Formulario y Resultados) -->
+    <aside class="w-full md:w-[480px] h-[calc(100vh-80px)] overflow-y-auto p-6 flex flex-col gap-6 bg-white border-r border-slate-100">
+        
+        <!-- Tarjeta de Planificación -->
+        <div class="bg-slate-50 p-6 rounded-2xl border border-slate-100 shadow-sm">
+            <header class="mb-6">
+                <h1 class="text-2xl font-black text-slate-900 tracking-tight">Planificador de Rutas</h1>
+                <p class="text-slate-500 text-xs font-bold uppercase tracking-widest mt-1">Cálculo exacto por carretera</p>
+            </header>
+
+            <div class="space-y-4">
+                <!-- Origen con Autocompletado -->
+                <div class="relative">
+                    <label class="text-primary font-bold text-[10px] uppercase tracking-widest ml-1">Punto de Origen</label>
+                    <div class="flex items-center bg-white border border-slate-200 rounded-xl p-3 focus-within:ring-2 focus-within:ring-primary/20 transition-all">
+                        <span class="material-symbols-outlined text-primary mr-2">location_on</span>
+                        <input id="origen" class="bg-transparent border-none focus:ring-0 w-full text-sm font-medium" placeholder="Calle o CP de salida..." type="text" autocomplete="off"/>
+                    </div>
+                    <!-- Sugerencias -->
+                    <div id="sugerencias" class="absolute left-0 right-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-xl hidden"></div>
                 </div>
-</section>
-<!-- Right Column: Map -->
-<section class="flex-1 h-full relative">
-<div class="absolute inset-0 bg-surface-container-highest overflow-hidden">
-<img class="w-full h-full object-cover grayscale-[0.5] opacity-80" data-alt="high-detail minimalist navigation map with clean blue and grey topographic features and subtle route pathing" data-location="San Francisco" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBWEtDS2p4ZXxR_alGkEj4YZjXikWsyZC1j-R3S3-GMg6nFFC-TP82LQgqHDxq9CM2CuZsHyWJKFL9ORkNbHUjNFW4xJaDx8_7JGxrQ8xZKPiLjUy9r7_ocec9ohWRiyyaYX2s6XlTl9TBbTCvo7GR7YRxzxvH6YTofA91VVLso-qMlXsueaBSIFm4gHOyulnVKlQIj_WfEa8EyZfUr5ZNc9VeFfQI88_RLnFmk_xU7HtQ18P9vxTTGKN6G-I-akUJR50TNBVi0Els"/>
-<!-- Map Overlays -->
-<div class="absolute top-6 right-6 flex flex-col gap-2">
-<button class="w-12 h-12 bg-white/90 backdrop-blur shadow-lg rounded-xl flex items-center justify-center text-primary hover:bg-white transition-colors">
-<span class="material-symbols-outlined" data-icon="add">add</span>
-</button>
-<button class="w-12 h-12 bg-white/90 backdrop-blur shadow-lg rounded-xl flex items-center justify-center text-primary hover:bg-white transition-colors">
-<span class="material-symbols-outlined" data-icon="remove">remove</span>
-</button>
-<button class="w-12 h-12 bg-white/90 backdrop-blur shadow-lg rounded-xl mt-4 flex items-center justify-center text-primary hover:bg-white transition-colors">
-<span class="material-symbols-outlined" data-icon="my_location">my_location</span>
-</button>
-</div>
-<div class="absolute bottom-10 left-10 flex gap-4">
-<div class="bg-white/80 backdrop-blur-xl p-4 rounded-2xl shadow-2xl flex items-center gap-4">
-<div class="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-white">
-<span class="material-symbols-outlined" data-icon="navigation" style="font-variation-settings: 'FILL' 1;">navigation</span>
-</div>
-<div>
-<p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Next Turn</p>
-<p class="text-sm font-bold text-on-surface">500m • Exit 24B towards Downtown</p>
-</div>
-</div>
-</div>
-<!-- Glassmorphic Layer -->
-<div class="absolute inset-0 pointer-events-none border-[1.5rem] border-background/20"></div>
-</div>
-</section>
-</div>
+
+                <!-- Opciones -->
+                <div class="flex items-center gap-4 py-2">
+                    <label class="flex items-center gap-2 cursor-pointer group">
+                        <input type="radio" name="tipoRuta" value="1" checked class="text-primary focus:ring-primary">
+                        <span class="text-xs font-bold text-slate-600 group-hover:text-primary transition-colors">Sólo ida</span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer group">
+                        <input type="radio" name="tipoRuta" value="2" class="text-primary focus:ring-primary">
+                        <span class="text-xs font-bold text-slate-600 group-hover:text-primary transition-colors">Ida y vuelta</span>
+                    </label>
+                </div>
+
+                <!-- Destinos -->
+                <div>
+                    <label class="text-primary font-bold text-[10px] uppercase tracking-widest ml-1">Destinos (uno por línea)</label>
+                    <textarea id="destinos" class="w-full bg-white border border-slate-200 rounded-xl p-3 text-sm font-medium focus:ring-primary/20 h-28" placeholder="Ejemplo:&#10;28001&#10;Calle Pelayo 5, Barcelona&#10;Sevilla"></textarea>
+                </div>
+
+                <button onclick="procesarTodo()" class="w-full py-4 bg-gradient-to-r from-primary to-secondary text-white rounded-xl font-bold text-sm shadow-lg hover:shadow-primary/30 active:scale-[0.98] transition-all flex items-center justify-center gap-2">
+                    <span class="material-symbols-outlined text-sm">route</span>
+                    CALCULAR RUTAS
+                </button>
+            </div>
+        </div>
+
+        <!-- Tarjeta de Resultados -->
+        <div id="card-resultados" class="bg-white border border-slate-100 rounded-2xl p-6 hidden">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="font-black text-slate-900 uppercase text-[10px] tracking-widest">Resultados Optimizados</h3>
+                <button onclick="exportarCSV()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-primary/20 bg-primary/5 text-primary hover:bg-primary/10 transition-all text-[10px] font-black uppercase">
+                    <span class="material-symbols-outlined text-sm">table_chart</span> Exportar CSV
+                </button>
+            </div>
+
+            <div class="results-scroll">
+                <table class="w-full text-left text-xs">
+                    <thead>
+                        <tr class="text-slate-400 border-b border-slate-50">
+                            <th class="pb-2 font-bold uppercase tracking-tighter text-[9px]">Destino</th>
+                            <th class="pb-2 font-bold uppercase tracking-tighter text-[9px]">Distancia</th>
+                            <th class="pb-2 font-bold uppercase tracking-tighter text-[9px]">Tiempo</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabla-resultados" class="text-slate-700">
+                        <!-- Filas dinámicas -->
+                    </tbody>
+                </table>
+            </div>
+            
+            <div id="loader" class="hidden pt-4 text-center">
+                <div class="inline-block animate-spin rounded-full h-4 w-4 border-2 border-primary border-t-transparent"></div>
+                <span class="ml-2 text-[10px] font-bold text-primary uppercase">Procesando...</span>
+            </div>
+        </div>
+
+        <div class="mt-auto opacity-30 text-[9px] font-black tracking-widest uppercase text-center">
+            Fluid Navigator Core v4.2 • Geodata OpenStreetMap
+        </div>
+    </aside>
+
+    <!-- Sección de Mapa (Derecha) -->
+    <section class="flex-1 h-[calc(100vh-80px)] relative">
+        <div id="map"></div>
+        
+        <!-- Overlay del Mapa (Info Flotante) -->
+        <div class="absolute bottom-6 left-6 z-[1000] pointer-events-none">
+            <div class="bg-white/90 backdrop-blur shadow-2xl p-4 rounded-2xl flex items-center gap-4 border border-white">
+                <div class="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-white shadow-lg">
+                    <span class="material-symbols-outlined">navigation</span>
+                </div>
+                <div>
+                    <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Estado del Sistema</p>
+                    <p id="system-status" class="text-xs font-bold text-slate-900 italic">Listo para navegar</p>
+                </div>
+            </div>
+        </div>
+    </section>
 </main>
-<!-- Bottom Navigation for Mobile -->
-<nav class="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-white/90 backdrop-blur-xl border-t border-slate-100 flex justify-around items-center px-4 z-[60]">
-<button class="flex flex-col items-center gap-1 text-primary">
-<span class="material-symbols-outlined" data-icon="directions_car" style="font-variation-settings: 'FILL' 1;">directions_car</span>
-<span class="text-[10px] font-bold">Plan</span>
-</button>
-<button class="flex flex-col items-center gap-1 text-slate-400">
-<span class="material-symbols-outlined" data-icon="map">map</span>
-<span class="text-[10px] font-bold">Routes</span>
-</button>
-<button class="flex flex-col items-center gap-1 text-slate-400">
-<span class="material-symbols-outlined" data-icon="history">history</span>
-<span class="text-[10px] font-bold">Recent</span>
-</button>
-<button class="flex flex-col items-center gap-1 text-slate-400">
-<span class="material-symbols-outlined" data-icon="person">person</span>
-<span class="text-[10px] font-bold">Profile</span>
-</button>
-</nav>
-</body></html>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+    // --- INICIALIZACIÓN ---
+    const map = L.map('map', { zoomControl: false }).setView([40.4167, -3.7037], 6);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+        attribution: '©OpenStreetMap'
+    }).addTo(map);
+    L.control.zoom({ position: 'topright' }).addTo(map);
+
+    let capasRutas = L.featureGroup().addTo(map);
+    let datosParaExportar = [];
+    let timeoutBusqueda;
+
+    // --- AUTOCOMPLETADO ---
+    const inputOrigen = document.getElementById('origen');
+    const sugerenciasDiv = document.getElementById('sugerencias');
+
+    inputOrigen.addEventListener('input', () => {
+        clearTimeout(timeoutBusqueda);
+        const query = inputOrigen.value;
+        if (query.length < 3) { sugerenciasDiv.classList.add('hidden'); return; }
+
+        timeoutBusqueda = setTimeout(async () => {
+            const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query + ", España")}&limit=5`;
+            try {
+                const response = await fetch(url, { headers: { 'User-Agent': 'FluidNav' } });
+                const data = await response.json();
+                
+                sugerenciasDiv.innerHTML = '';
+                if (data.length > 0) {
+                    sugerenciasDiv.classList.remove('hidden');
+                    data.forEach(item => {
+                        const div = document.createElement('div');
+                        div.className = 'p-3 hover:bg-slate-50 cursor-pointer text-xs border-b border-slate-100 last:border-none font-medium';
+                        div.innerText = item.display_name;
+                        div.onclick = () => {
+                            inputOrigen.value = item.display_name;
+                            inputOrigen.dataset.lat = item.lat;
+                            inputOrigen.dataset.lon = item.lon;
+                            sugerenciasDiv.classList.add('hidden');
+                        };
+                        sugerenciasDiv.appendChild(div);
+                    });
+                }
+            } catch (e) {}
+        }, 400);
+    });
+
+    // --- LÓGICA CORE ---
+    async function geocodificar(query) {
+        const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query + ", España")}&limit=1`;
+        const response = await fetch(url, { headers: { 'User-Agent': 'FluidNav' } });
+        const data = await response.json();
+        if (data.length === 0) throw new Error("No encontrado");
+        return { lat: data[0].lat, lon: data[0].lon, name: data[0].display_name };
+    }
+
+    async function obtenerRuta(p1, p2) {
+        const url = `https://router.project-osrm.org/route/v1/driving/${p1.lon},${p1.lat};${p2.lon},${p2.lat}?overview=full&geometries=geojson`;
+        const response = await fetch(url);
+        const data = await response.json();
+        return data.routes[0];
+    }
+
+    async function procesarTodo() {
+        const origenTexto = inputOrigen.value;
+        const destinosTexto = document.getElementById('destinos').value.trim();
+        const multiplicador = parseInt(document.querySelector('input[name="tipoRuta"]:checked').value);
+        const tabla = document.getElementById('tabla-resultados');
+        const cardResultados = document.getElementById('card-resultados');
+        const loader = document.getElementById('loader');
+        const systemStatus = document.getElementById('system-status');
+
+        if (!origenTexto || !destinosTexto) return alert("Por favor, introduce origen y al menos un destino.");
+
+        listaDestinos = destinosTexto.split('\n').filter(l => l.trim() !== "");
+        tabla.innerHTML = "";
+        datosParaExportar = [];
+        capasRutas.clearLayers();
+        cardResultados.classList.remove('hidden');
+        loader.classList.remove('hidden');
+
+        try {
+            systemStatus.innerText = "Localizando origen...";
+            let coordOrigen;
+            if (inputOrigen.dataset.lat) {
+                coordOrigen = { lat: inputOrigen.dataset.lat, lon: inputOrigen.dataset.lon };
+            } else {
+                coordOrigen = await geocodificar(origenTexto);
+            }
+
+            L.marker([coordOrigen.lat, coordOrigen.lon]).addTo(capasRutas).bindPopup("ORIGEN: " + origenTexto);
+
+            for (let i = 0; i < listaDestinos.length; i++) {
+                const dTexto = listaDestinos[i].trim();
+                systemStatus.innerText = `Calculando destino ${i+1}/${listaDestinos.length}...`;
+                
+                try {
+                    await new Promise(r => setTimeout(r, 800)); // Delay para API gratuita
+                    const coordDestino = await geocodificar(dTexto);
+                    const ruta = await obtenerRuta(coordOrigen, coordDestino);
+                    
+                    const kms = ((ruta.distance / 1000) * multiplicador).toFixed(2);
+                    const minsTotal = (ruta.duration / 60) * multiplicador;
+                    const horas = Math.floor(minsTotal / 60);
+                    const mins = Math.round(minsTotal % 60);
+                    const tiempoStr = horas > 0 ? `${horas}h ${mins}m` : `${mins}m`;
+
+                    // Tabla UX
+                    tabla.innerHTML += `
+                        <tr class="border-b border-slate-50 hover:bg-slate-50 transition-colors">
+                            <td class="py-3 pr-2 font-medium">${dTexto}</td>
+                            <td class="py-3 font-black text-primary">${kms} km</td>
+                            <td class="py-3 text-slate-400 font-bold">${tiempoStr}</td>
+                        </tr>
+                    `;
+
+                    // Guardar para CSV
+                    datosParaExportar.push({ Destino: dTexto, KM: kms, Tiempo: tiempoStr, Tipo: multiplicador === 2 ? 'Ida y Vuelta' : 'Sólo Ida' });
+
+                    // Marcador ROJO (POI)
+                    const marker = L.marker([coordDestino.lat, coordDestino.lon]).addTo(capasRutas);
+                    marker._icon.classList.add("red-icon");
+                    marker.bindPopup(`<b>${dTexto}</b><br>${kms} km`);
+
+                    // Línea de ruta
+                    L.geoJSON(ruta.geometry, { 
+                        style: { color: '#005dac', weight: 4, opacity: 0.4, lineCap: 'round' } 
+                    }).addTo(capasRutas);
+
+                } catch (e) {
+                    tabla.innerHTML += `<tr class="text-red-400"><td class="py-2">${dTexto}</td><td colspan="2">No encontrado</td></tr>`;
+                }
+            }
+            
+            systemStatus.innerText = "Cálculo finalizado con éxito";
+            map.fitBounds(capasRutas.getBounds(), { padding: [50, 50] });
+
+        } catch (error) {
+            systemStatus.innerText = "Error: " + error.message;
+        } finally {
+            loader.classList.add('hidden');
+        }
+    }
+
+    // --- FUNCIÓN EXPORTAR CSV ---
+    function exportarCSV() {
+        if (datosParaExportar.length === 0) return;
+        
+        const origen = inputOrigen.value.split(',')[0];
+        let csvContent = "data:text/csv;charset=utf-8,Origen,Destino,KM,Tiempo,Tipo\n";
+        
+        datosParaExportar.forEach(r => {
+            csvContent += `"${origen}","${r.Destino}","${r.KM}","${r.Tiempo}","${r.Tipo}"\n`;
+        });
+
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", `Rutas_FluidNav_${new Date().toLocaleDateString()}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+</script>
+
+</body>
+</html>
